@@ -450,19 +450,3 @@
 
 </body>
 </html>
-```
-
-**Key Changes in `moveAI` function:**
-
-1.  **Mode Switching:** Calculates distance to player and sets `mode` to `'wander'` or `'evade'`.
-2.  **Speed Calculation:**
-    * Calculates `baseFrameSpeed` including level difficulty (`currentAiSpeed`) and random jitter (`currentJitterOffset`).
-    * Adds `proximityBoost` if in `'evade'` mode, scaling with closeness.
-    * Clamps the final `effectiveSpeed` between a minimum value (0.5) and the maximum cap (`aiMaxSpeed`).
-3.  **Direction Calculation:**
-    * Uses predictive evasion vector if `mode === 'evade'`.
-    * Uses `currentWanderDirection` (updated periodically) if `mode === 'wander'`.
-4.  **Obstacle Avoidance:** The existing perpendicular check logic is applied to the movement vector calculated based on the current mode and speed.
-5.  **State Variables:** Added `aiEvasionDistance`, `aiProximityBoostFactor`, `aiSpeedJitterMagnitude`, `aiWanderChangeFrequency`, `aiMaxSpeed` constants and `currentWanderDirection`, `wanderTimer`, `currentJitterOffset` state variables.
-
-This AI should now exhibit more complex behavior, wandering somewhat randomly when you're far away and becoming aggressively evasive and faster when you close in, all while dealing with obstacles and occasionally shooting ba
