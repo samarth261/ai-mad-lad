@@ -31,6 +31,9 @@ side, so play happens on a continuous looped field.
   the screen.
 - **Boosting:** When activated with the spacebar, the player glows yellow and
   moves faster. The token counter resets by the boost amount used.
+- **Shield Tokens:** Purple circles that appear once per level. Collecting one
+  grants a shield that blocks the next projectile. The current shield status is
+  shown below the game.
 
 ## Losing the Game
 

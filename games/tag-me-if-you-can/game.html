@@ -95,6 +95,24 @@
             border: 1px solid #cfa70c;
         }
 
+        /* Shield token style */
+        .shield-token {
+            width: 15px;
+            height: 15px;
+            background-color: #9b59b6; /* Purple */
+            border-radius: 50%;
+            position: absolute;
+            z-index: 8;
+            box-shadow: 0 0 10px #9b59b6;
+            border: 1px solid #8e44ad;
+        }
+
+        /* Player shielded visual */
+        #player.shielded {
+            box-shadow: 0 0 18px 6px #9b59b6;
+            border: 2px solid #9b59b6;
+        }
+
         /* AI Projectile Style */
         .projectile {
             width: 8px;
@@ -186,6 +204,7 @@
     <div id="game-info">
         <span id="level-display">Level: 1</span>
         <span id="boost-token-display">Boost Tokens: 0 / 5</span>
+        <span id="shield-display">Shield: None</span>
         <span>Controls: Arrow Keys | Spacebar = Boost</span>
         <button id="burst-button">Freeze Burst</button>
     </div>
@@ -199,6 +218,7 @@
         const pauseMessage = document.getElementById('pause-message');
         const levelDisplay = document.getElementById('level-display');
         const boostTokenDisplay = document.getElementById('boost-token-display');
+        const shieldDisplay = document.getElementById('shield-display');
         const burstButton = document.getElementById('burst-button');
 
         // --- Game Constants ---
@@ -238,8 +258,10 @@
         let boostTimer = null;
         let obstacles = [];
         let boostTokens = [];
+        let shieldTokens = [];
         let projectiles = [];
         let playerBullets = [];
+        let hasShield = false;
         let burstCooldown = 0;
         let aiFrozen = false;
         let aiFreezeTimer = 0;
@@ -259,9 +281,70 @@
 
         // --- Level Data --- (Used cyclically)
         const levelLayouts = [
-            { obstacles: [ { x: 150, y: 100, width: 150, height: 30 }, { x: 400, y: 250, width: 30, height: 150 }, { x: 100, y: 350, width: 200, height: 30 }, { x: 550, y: 80, width: 30, height: 180 } ], boostTokens: [ { x: 200, y: 200 }, { x: 500, y: 100 }, { x: 100, y: 400 }, { x: 600, y: 400 }, { x: 350, y: 300 }, { x: 50, y: 250 } ] },
-            { obstacles: [ { x: 0, y: 150, width: 200, height: 30 }, { x: gameAreaWidth - 200, y: 150, width: 200, height: 30 }, { x: 0, y: 320, width: 200, height: 30 }, { x: gameAreaWidth - 200, y: 320, width: 200, height: 30 }, { x: 250, y: 0, width: 30, height: 120 }, { x: 420, y: 0, width: 30, height: 120 }, { x: 250, y: gameAreaHeight - 120, width: 30, height: 120 }, { x: 420, y: gameAreaHeight - 120, width: 30, height: 120 }, { x: 280, y: 235, width: 140, height: 30 } ], boostTokens: [ { x: 50, y: 50 }, { x: gameAreaWidth - 65, y: 50 }, { x: 50, y: gameAreaHeight - 65 }, { x: gameAreaWidth - 65, y: gameAreaHeight - 65 }, { x: 100, y: 235 }, { x: gameAreaWidth - 115, y: 235 } ] },
-            { obstacles: [ { x: 100, y: 100, width: 40, height: 40 }, { x: 250, y: 100, width: 40, height: 40 }, { x: 400, y: 100, width: 40, height: 40 }, { x: 550, y: 100, width: 40, height: 40 }, { x: 100, y: 230, width: 40, height: 40 }, { x: 250, y: 230, width: 40, height: 40 }, { x: 400, y: 230, width: 40, height: 40 }, { x: 550, y: 230, width: 40, height: 40 }, { x: 100, y: 360, width: 40, height: 40 }, { x: 250, y: 360, width: 40, height: 40 }, { x: 400, y: 360, width: 40, height: 40 }, { x: 550, y: 360, width: 40, height: 40 } ], boostTokens: [ { x: 175, y: 170 }, { x: 475, y: 170 }, { x: 175, y: 300 }, { x: 475, y: 300 }, { x: 325, y: 50 }, { x: 325, y: 430 } ] }
+            {
+                obstacles: [
+                    { x: 150, y: 100, width: 150, height: 30 },
+                    { x: 400, y: 250, width: 30, height: 150 },
+                    { x: 100, y: 350, width: 200, height: 30 },
+                    { x: 550, y: 80, width: 30, height: 180 }
+                ],
+                boostTokens: [
+                    { x: 200, y: 200 },
+                    { x: 500, y: 100 },
+                    { x: 100, y: 400 },
+                    { x: 600, y: 400 },
+                    { x: 350, y: 300 },
+                    { x: 50, y: 250 }
+                ],
+                shieldToken: { x: 350, y: 200 }
+            },
+            {
+                obstacles: [
+                    { x: 0, y: 150, width: 200, height: 30 },
+                    { x: gameAreaWidth - 200, y: 150, width: 200, height: 30 },
+                    { x: 0, y: 320, width: 200, height: 30 },
+                    { x: gameAreaWidth - 200, y: 320, width: 200, height: 30 },
+                    { x: 250, y: 0, width: 30, height: 120 },
+                    { x: 420, y: 0, width: 30, height: 120 },
+                    { x: 250, y: gameAreaHeight - 120, width: 30, height: 120 },
+                    { x: 420, y: gameAreaHeight - 120, width: 30, height: 120 },
+                    { x: 280, y: 235, width: 140, height: 30 }
+                ],
+                boostTokens: [
+                    { x: 50, y: 50 },
+                    { x: gameAreaWidth - 65, y: 50 },
+                    { x: 50, y: gameAreaHeight - 65 },
+                    { x: gameAreaWidth - 65, y: gameAreaHeight - 65 },
+                    { x: 100, y: 235 },
+                    { x: gameAreaWidth - 115, y: 235 }
+                ],
+                shieldToken: { x: 325, y: 160 }
+            },
+            {
+                obstacles: [
+                    { x: 100, y: 100, width: 40, height: 40 },
+                    { x: 250, y: 100, width: 40, height: 40 },
+                    { x: 400, y: 100, width: 40, height: 40 },
+                    { x: 550, y: 100, width: 40, height: 40 },
+                    { x: 100, y: 230, width: 40, height: 40 },
+                    { x: 250, y: 230, width: 40, height: 40 },
+                    { x: 400, y: 230, width: 40, height: 40 },
+                    { x: 550, y: 230, width: 40, height: 40 },
+                    { x: 100, y: 360, width: 40, height: 40 },
+                    { x: 250, y: 360, width: 40, height: 40 },
+                    { x: 400, y: 360, width: 40, height: 40 },
+                    { x: 550, y: 360, width: 40, height: 40 }
+                ],
+                boostTokens: [
+                    { x: 175, y: 170 },
+                    { x: 475, y: 170 },
+                    { x: 175, y: 300 },
+                    { x: 475, y: 300 },
+                    { x: 325, y: 50 },
+                    { x: 325, y: 430 }
+                ],
+                shieldToken: { x: 325, y: 240 }
+            }
         ];
 
         // --- Helper Functions ---
@@ -288,6 +371,15 @@
         function checkTokenCollision(playerRect) { /* ... same as before ... */
             for (let i = boostTokens.length - 1; i >= 0; i--) { const token = boostTokens[i]; const tokenRect = getBoundingBox(null, token.data, tokenSize); if (isColliding(playerRect, tokenRect)) { collectBoostToken(i); } }
         }
+        function checkShieldCollision(playerRect) {
+            for (let i = shieldTokens.length - 1; i >= 0; i--) {
+                const token = shieldTokens[i];
+                const tokenRect = getBoundingBox(null, token.data, tokenSize);
+                if (isColliding(playerRect, tokenRect)) {
+                    collectShieldToken(i);
+                }
+            }
+        }
         /** Calculates distance between two points */
         function getDistance(pos1, pos2) {
             const dx = pos1.x - pos2.x;
@@ -300,8 +392,18 @@
         function collectBoostToken(index) { /* ... same as before ... */
             boostTokensCollected++; updateBoostTokenDisplay(); gameArea.removeChild(boostTokens[index].element); boostTokens.splice(index, 1);
         }
+        function collectShieldToken(index) {
+            hasShield = true;
+            updateShieldDisplay();
+            player.classList.add('shielded');
+            gameArea.removeChild(shieldTokens[index].element);
+            shieldTokens.splice(index, 1);
+        }
         function updateBoostTokenDisplay() { /* ... same as before ... */
             boostTokenDisplay.textContent = `Boost Tokens: ${boostTokensCollected} / ${boostRequirement}`;
+        }
+        function updateShieldDisplay() {
+            shieldDisplay.textContent = hasShield ? 'Shield: Ready' : 'Shield: None';
         }
         function activateBoost() { /* ... same as before ... */
             if (boostTokensCollected >= boostRequirement && !isBoosting && !gameOver) { isBoosting = true; boostTokensCollected -= boostRequirement; updateBoostTokenDisplay(); playerSpeed = basePlayerSpeed * 2; player.classList.add('boosting'); if (boostTimer) clearTimeout(boostTimer); boostTimer = setTimeout(() => { isBoosting = false; playerSpeed = basePlayerSpeed; player.classList.remove('boosting'); boostTimer = null; }, boostDuration); }
@@ -313,7 +415,32 @@
             const projElement = document.createElement('div'); projElement.className = 'projectile'; let dirX = (playerPos.x + characterSize / 2) - (aiPos.x + characterSize / 2); let dirY = (playerPos.y + characterSize / 2) - (aiPos.y + characterSize / 2); const magnitude = Math.sqrt(dirX * dirX + dirY * dirY); let velocityX = 0; let velocityY = 0; if (magnitude > 0) { velocityX = (dirX / magnitude) * projectileSpeed; velocityY = (dirY / magnitude) * projectileSpeed; } else { velocityX = projectileSpeed; } let startX = aiPos.x + characterSize / 2 - projectileSize / 2; let startY = aiPos.y + characterSize / 2 - projectileSize / 2; projElement.style.left = startX + 'px'; projElement.style.top = startY + 'px'; gameArea.appendChild(projElement); projectiles.push({ element: projElement, pos: { x: startX, y: startY }, velocity: { x: velocityX, y: velocityY } });
         }
         function moveProjectiles() { /* ... same as before ... */
-            for (let i = projectiles.length - 1; i >= 0; i--) { const proj = projectiles[i]; proj.pos.x += proj.velocity.x; proj.pos.y += proj.velocity.y; proj.pos = wrapPosition(proj.pos, projectileSize); proj.element.style.left = proj.pos.x + 'px'; proj.element.style.top = proj.pos.y + 'px'; const projRect = getBoundingBox(null, proj.pos, projectileSize); const playerRect = getBoundingBox(player, playerPos, characterSize); if (isColliding(projRect, playerRect)) { gameOver = true; messageDisplay.innerHTML = `You Were Tagged Back!<br><small>(Refresh to play again)</small>`; messageDisplay.style.display = 'block'; clearInterval(gameLoopInterval); gameLoopInterval = null; return; } }
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const proj = projectiles[i];
+                proj.pos.x += proj.velocity.x;
+                proj.pos.y += proj.velocity.y;
+                proj.pos = wrapPosition(proj.pos, projectileSize);
+                proj.element.style.left = proj.pos.x + 'px';
+                proj.element.style.top = proj.pos.y + 'px';
+                const projRect = getBoundingBox(null, proj.pos, projectileSize);
+                const playerRect = getBoundingBox(player, playerPos, characterSize);
+                if (isColliding(projRect, playerRect)) {
+                    if (hasShield) {
+                        hasShield = false;
+                        updateShieldDisplay();
+                        player.classList.remove('shielded');
+                        gameArea.removeChild(proj.element);
+                        projectiles.splice(i, 1);
+                        continue;
+                    }
+                    gameOver = true;
+                    messageDisplay.innerHTML = `You Were Tagged Back!<br><small>(Refresh to play again)</small>`;
+                    messageDisplay.style.display = 'block';
+                    clearInterval(gameLoopInterval);
+                    gameLoopInterval = null;
+                    return;
+                }
+            }
         }
 
         function fireBurst() {
@@ -520,15 +647,26 @@
             if (!gameOver) {
                 const playerRect = getBoundingBox(player, playerPos);
                 checkTokenCollision(playerRect);
+                checkShieldCollision(playerRect);
                 checkWinCondition();
             }
             render();
         }
         function clearLevelElements() { /* ... same as before ... */
-            obstacles.forEach(obs => gameArea.removeChild(obs.element)); obstacles = []; boostTokens.forEach(token => gameArea.removeChild(token.element)); boostTokens = []; projectiles.forEach(proj => { if (proj.element.parentNode === gameArea) gameArea.removeChild(proj.element); }); projectiles = []; // Clear projectiles too
+            obstacles.forEach(obs => gameArea.removeChild(obs.element));
+            obstacles = [];
+            boostTokens.forEach(token => gameArea.removeChild(token.element));
+            boostTokens = [];
+            shieldTokens.forEach(token => gameArea.removeChild(token.element));
+            shieldTokens = [];
+            projectiles.forEach(proj => { if (proj.element.parentNode === gameArea) gameArea.removeChild(proj.element); });
+            projectiles = []; // Clear projectiles too
             playerBullets.forEach(b => { if (b.element.parentNode === gameArea) gameArea.removeChild(b.element); });
             playerBullets = [];
             burstCooldown = 0;
+            hasShield = false;
+            updateShieldDisplay();
+            player.classList.remove('shielded');
             aiFrozen = false;
             ai.classList.remove('frozen');
         }
@@ -542,6 +680,9 @@
                 aiPos = { x: 50, y: gameAreaHeight - 80 };
             }
             boostTokensCollected = 0;
+            hasShield = false;
+            player.classList.remove('shielded');
+            updateShieldDisplay();
             if (isBoosting) {
                 clearTimeout(boostTimer);
                 isBoosting = false;
@@ -572,6 +713,14 @@
                 gameArea.appendChild(tokenElement);
                 boostTokens.push({ element: tokenElement, data: tokenData });
             });
+            if (layout.shieldToken) {
+                const sEl = document.createElement('div');
+                sEl.className = 'shield-token';
+                sEl.style.left = layout.shieldToken.x + 'px';
+                sEl.style.top = layout.shieldToken.y + 'px';
+                gameArea.appendChild(sEl);
+                shieldTokens.push({ element: sEl, data: layout.shieldToken });
+            }
             render();
             gameOver = false;
             isPaused = false;
