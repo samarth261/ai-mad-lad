@@ -106,6 +106,29 @@
             box-shadow: 0 0 5px #e67e22;
         }
 
+        /* Player burst bullet style */
+        .player-bullet {
+            width: 6px;
+            height: 6px;
+            background-color: #00ffff; /* Cyan */
+            border-radius: 50%;
+            position: absolute;
+            z-index: 12;
+            box-shadow: 0 0 5px #00ffff;
+        }
+
+        /* Button for firing burst */
+        #burst-button {
+            padding: 4px 10px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        /* AI frozen visual indicator */
+        #ai.frozen {
+            background-color: #85c1e9;
+        }
+
         /* Area below the game for information */
         #game-info {
             margin-top: 15px;
@@ -164,6 +187,7 @@
         <span id="level-display">Level: 1</span>
         <span id="boost-token-display">Boost Tokens: 0 / 5</span>
         <span>Controls: Arrow Keys | Spacebar = Boost</span>
+        <button id="burst-button">Freeze Burst</button>
     </div>
 
     <script>
@@ -175,6 +199,7 @@
         const pauseMessage = document.getElementById('pause-message');
         const levelDisplay = document.getElementById('level-display');
         const boostTokenDisplay = document.getElementById('boost-token-display');
+        const burstButton = document.getElementById('burst-button');
 
         // --- Game Constants ---
         const gameAreaWidth = gameArea.offsetWidth;
@@ -189,6 +214,11 @@
         const gameLoopIntervalMs = 16; // ~60 FPS
         const aiShootCooldownTime = 3500; // AI shoots every 3.5 seconds
         const projectileSpeed = 5.5;
+        const burstBulletSpeed = 6;
+        const burstBulletSize = 6;
+        const burstBulletCount = 12;
+        const burstCooldownTime = 5000;
+        const aiFreezeDuration = 3000;
         const aiPredictionTime = 0.5;
         const difficultySpeedIncrease = 0.1;
         const aiEvasionDistance = 200; // Distance threshold to trigger evasion mode
@@ -209,6 +239,10 @@
         let obstacles = [];
         let boostTokens = [];
         let projectiles = [];
+        let playerBullets = [];
+        let burstCooldown = 0;
+        let aiFrozen = false;
+        let aiFreezeTimer = 0;
         let currentLevelIndex = 0;
         let gameLoopInterval = null;
         let gameOver = false;
@@ -282,13 +316,63 @@
             for (let i = projectiles.length - 1; i >= 0; i--) { const proj = projectiles[i]; proj.pos.x += proj.velocity.x; proj.pos.y += proj.velocity.y; proj.pos = wrapPosition(proj.pos, projectileSize); proj.element.style.left = proj.pos.x + 'px'; proj.element.style.top = proj.pos.y + 'px'; const projRect = getBoundingBox(null, proj.pos, projectileSize); const playerRect = getBoundingBox(player, playerPos, characterSize); if (isColliding(projRect, playerRect)) { gameOver = true; messageDisplay.innerHTML = `You Were Tagged Back!<br><small>(Refresh to play again)</small>`; messageDisplay.style.display = 'block'; clearInterval(gameLoopInterval); gameLoopInterval = null; return; } }
         }
 
+        function fireBurst() {
+            if (burstCooldown > 0 || gameOver || isPaused) return;
+            const startX = playerPos.x + characterSize / 2 - burstBulletSize / 2;
+            const startY = playerPos.y + characterSize / 2 - burstBulletSize / 2;
+            for (let i = 0; i < burstBulletCount; i++) {
+                const angle = (i / burstBulletCount) * Math.PI * 2;
+                const vx = Math.cos(angle) * burstBulletSpeed;
+                const vy = Math.sin(angle) * burstBulletSpeed;
+                const bEl = document.createElement('div');
+                bEl.className = 'player-bullet';
+                bEl.style.left = startX + 'px';
+                bEl.style.top = startY + 'px';
+                gameArea.appendChild(bEl);
+                playerBullets.push({ element: bEl, pos: { x: startX, y: startY }, velocity: { x: vx, y: vy } });
+            }
+            burstCooldown = burstCooldownTime;
+        }
+
+        function movePlayerBullets() {
+            for (let i = playerBullets.length - 1; i >= 0; i--) {
+                const bullet = playerBullets[i];
+                bullet.pos.x += bullet.velocity.x;
+                bullet.pos.y += bullet.velocity.y;
+                bullet.element.style.left = bullet.pos.x + 'px';
+                bullet.element.style.top = bullet.pos.y + 'px';
+                if (bullet.pos.x < -burstBulletSize || bullet.pos.x > gameAreaWidth + burstBulletSize || bullet.pos.y < -burstBulletSize || bullet.pos.y > gameAreaHeight + burstBulletSize) {
+                    if (bullet.element.parentNode === gameArea) gameArea.removeChild(bullet.element);
+                    playerBullets.splice(i, 1);
+                    continue;
+                }
+                const bulletRect = getBoundingBox(null, bullet.pos, burstBulletSize);
+                const aiRect = getBoundingBox(ai, aiPos, characterSize);
+                if (isColliding(bulletRect, aiRect)) {
+                    aiFrozen = true;
+                    aiFreezeTimer = aiFreezeDuration;
+                    ai.classList.add('frozen');
+                    if (bullet.element.parentNode === gameArea) gameArea.removeChild(bullet.element);
+                    playerBullets.splice(i, 1);
+                }
+            }
+        }
+
         /**
          * Controls the AI's movement (UPDATED FOR ADVANCED AI).
          * Switches between random wandering and predictive evasion based on distance.
          * Includes speed jitter and proximity speed boost, capped at aiMaxSpeed.
          * Handles obstacle avoidance and shooting.
          */
-        function moveAI() {
+       function moveAI() {
+            if (aiFrozen) {
+                aiFreezeTimer -= gameLoopIntervalMs;
+                if (aiFreezeTimer <= 0) {
+                    aiFrozen = false;
+                    ai.classList.remove('frozen');
+                }
+                return;
+            }
             let bestDx = 0;
             let bestDy = 0;
             let moved = false;
@@ -431,6 +515,8 @@
             handlePlayerInput();
             moveAI();
             moveProjectiles();
+            movePlayerBullets();
+            if (burstCooldown > 0) burstCooldown -= gameLoopIntervalMs;
             if (!gameOver) {
                 const playerRect = getBoundingBox(player, playerPos);
                 checkTokenCollision(playerRect);
@@ -440,6 +526,11 @@
         }
         function clearLevelElements() { /* ... same as before ... */
             obstacles.forEach(obs => gameArea.removeChild(obs.element)); obstacles = []; boostTokens.forEach(token => gameArea.removeChild(token.element)); boostTokens = []; projectiles.forEach(proj => { if (proj.element.parentNode === gameArea) gameArea.removeChild(proj.element); }); projectiles = []; // Clear projectiles too
+            playerBullets.forEach(b => { if (b.element.parentNode === gameArea) gameArea.removeChild(b.element); });
+            playerBullets = [];
+            burstCooldown = 0;
+            aiFrozen = false;
+            ai.classList.remove('frozen');
         }
         function loadLevel(levelNum) { /* ... same as before ... */
             clearLevelElements();
@@ -502,12 +593,19 @@
                 }
                 return;
             }
+            if (key === 'f') {
+                e.preventDefault();
+                fireBurst();
+                return;
+            }
             if (keysPressed.hasOwnProperty(e.key)) keysPressed[e.key] = true;
             if (e.code === 'Space') { e.preventDefault(); activateBoost(); }
         });
         window.addEventListener('keyup', (e) => { /* ... same as before ... */
             if (keysPressed.hasOwnProperty(e.key)) { keysPressed[e.key] = false; if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') playerVelocity.x = 0; if (e.key === 'ArrowUp' || e.key === 'ArrowDown') playerVelocity.y = 0; }
         });
+
+        burstButton.addEventListener('click', fireBurst);
 
         // --- Game Initialization ---
         document.addEventListener('DOMContentLoaded', () => { /* ... same as before ... */

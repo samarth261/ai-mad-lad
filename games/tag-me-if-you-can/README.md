@@ -20,6 +20,8 @@ side, so play happens on a continuous looped field.
   tokens. The boost lasts about two seconds and temporarily doubles your
   speed.
 - **P** – Pause or resume the game. While paused, a “Paused” overlay is shown.
+- **F / Freeze Burst button** – Fire a ring of freezing bullets around the
+  player. Hitting the AI freezes it for a few seconds.
 - **Browser refresh** – Restart the game after a Game Over.
 
 ## Collectables and Boosts
