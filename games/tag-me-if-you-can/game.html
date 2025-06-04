@@ -121,8 +121,8 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* Message overlay (for winning/losing) */
-        #message {
+        /* Message overlay (for winning/losing and pausing) */
+        #message, #pause-message {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -139,7 +139,7 @@
             border: 2px solid #ecf0f1;
             box-shadow: 0 6px 20px rgba(0,0,0,0.5);
         }
-        #message small {
+        #message small, #pause-message small {
             font-size: 0.5em;
             font-weight: normal;
             display: block;
@@ -157,6 +157,7 @@
             <div id="ai" class="character"></div>
             </div>
         <div id="message">Game Over!<br><small>(Refresh to play again)</small></div>
+        <div id="pause-message">Paused<br><small>Press P to Resume</small></div>
     </div>
 
     <div id="game-info">
@@ -171,6 +172,7 @@
         const player = document.getElementById('player');
         const ai = document.getElementById('ai');
         const messageDisplay = document.getElementById('message');
+        const pauseMessage = document.getElementById('pause-message');
         const levelDisplay = document.getElementById('level-display');
         const boostTokenDisplay = document.getElementById('boost-token-display');
 
@@ -210,6 +212,7 @@
         let currentLevelIndex = 0;
         let gameLoopInterval = null;
         let gameOver = false;
+        let isPaused = false;
         let aiShootCooldown = 0;
         // AI Movement State
         let currentWanderDirection = { x: Math.random() * 2 - 1, y: Math.random() * 2 - 1 }; // Initial random direction
@@ -424,18 +427,83 @@
             player.style.left = playerPos.x + 'px'; player.style.top = playerPos.y + 'px'; ai.style.left = aiPos.x + 'px'; ai.style.top = aiPos.y + 'px';
         }
         function gameLoop() { /* ... same as before ... */
-            if (gameOver) return; handlePlayerInput(); moveAI(); moveProjectiles(); if (!gameOver) { const playerRect = getBoundingBox(player, playerPos); checkTokenCollision(playerRect); checkWinCondition(); } render();
+            if (gameOver || isPaused) return;
+            handlePlayerInput();
+            moveAI();
+            moveProjectiles();
+            if (!gameOver) {
+                const playerRect = getBoundingBox(player, playerPos);
+                checkTokenCollision(playerRect);
+                checkWinCondition();
+            }
+            render();
         }
         function clearLevelElements() { /* ... same as before ... */
             obstacles.forEach(obs => gameArea.removeChild(obs.element)); obstacles = []; boostTokens.forEach(token => gameArea.removeChild(token.element)); boostTokens = []; projectiles.forEach(proj => { if (proj.element.parentNode === gameArea) gameArea.removeChild(proj.element); }); projectiles = []; // Clear projectiles too
         }
         function loadLevel(levelNum) { /* ... same as before ... */
-            clearLevelElements(); if (levelNum % 2 === 0) { playerPos = { x: 50, y: 50 }; aiPos = { x: gameAreaWidth - 80, y: gameAreaHeight - 80 }; } else { playerPos = { x: gameAreaWidth - 80, y: 50 }; aiPos = { x: 50, y: gameAreaHeight - 80 }; } boostTokensCollected = 0; if (isBoosting) { clearTimeout(boostTimer); isBoosting = false; playerSpeed = basePlayerSpeed; player.classList.remove('boosting'); boostTimer = null; } updateBoostTokenDisplay(); aiShootCooldown = aiShootCooldownTime / 2; const layoutIndex = levelNum % levelLayouts.length; const layout = levelLayouts[layoutIndex]; levelDisplay.textContent = `Level: ${levelNum + 1}`; layout.obstacles.forEach(obsData => { const obsElement = document.createElement('div'); obsElement.className = 'obstacle'; obsElement.style.left = obsData.x + 'px'; obsElement.style.top = obsData.y + 'px'; obsElement.style.width = obsData.width + 'px'; obsElement.style.height = obsData.height + 'px'; gameArea.appendChild(obsElement); obstacles.push({ element: obsElement, data: obsData }); }); layout.boostTokens.forEach(tokenData => { const tokenElement = document.createElement('div'); tokenElement.className = 'boost-token'; tokenElement.style.left = tokenData.x + 'px'; tokenElement.style.top = tokenData.y + 'px'; gameArea.appendChild(tokenElement); boostTokens.push({ element: tokenElement, data: tokenData }); }); render(); gameOver = false; messageDisplay.style.display = 'none'; if (!gameLoopInterval) { gameLoopInterval = setInterval(gameLoop, gameLoopIntervalMs); }
+            clearLevelElements();
+            if (levelNum % 2 === 0) {
+                playerPos = { x: 50, y: 50 };
+                aiPos = { x: gameAreaWidth - 80, y: gameAreaHeight - 80 };
+            } else {
+                playerPos = { x: gameAreaWidth - 80, y: 50 };
+                aiPos = { x: 50, y: gameAreaHeight - 80 };
+            }
+            boostTokensCollected = 0;
+            if (isBoosting) {
+                clearTimeout(boostTimer);
+                isBoosting = false;
+                playerSpeed = basePlayerSpeed;
+                player.classList.remove('boosting');
+                boostTimer = null;
+            }
+            updateBoostTokenDisplay();
+            aiShootCooldown = aiShootCooldownTime / 2;
+            const layoutIndex = levelNum % levelLayouts.length;
+            const layout = levelLayouts[layoutIndex];
+            levelDisplay.textContent = `Level: ${levelNum + 1}`;
+            layout.obstacles.forEach(obsData => {
+                const obsElement = document.createElement('div');
+                obsElement.className = 'obstacle';
+                obsElement.style.left = obsData.x + 'px';
+                obsElement.style.top = obsData.y + 'px';
+                obsElement.style.width = obsData.width + 'px';
+                obsElement.style.height = obsData.height + 'px';
+                gameArea.appendChild(obsElement);
+                obstacles.push({ element: obsElement, data: obsData });
+            });
+            layout.boostTokens.forEach(tokenData => {
+                const tokenElement = document.createElement('div');
+                tokenElement.className = 'boost-token';
+                tokenElement.style.left = tokenData.x + 'px';
+                tokenElement.style.top = tokenData.y + 'px';
+                gameArea.appendChild(tokenElement);
+                boostTokens.push({ element: tokenElement, data: tokenData });
+            });
+            render();
+            gameOver = false;
+            isPaused = false;
+            messageDisplay.style.display = 'none';
+            pauseMessage.style.display = 'none';
+            if (!gameLoopInterval) {
+                gameLoopInterval = setInterval(gameLoop, gameLoopIntervalMs);
+            }
         }
 
         // --- Event Listeners Setup ---
         window.addEventListener('keydown', (e) => { /* ... same as before ... */
-            if (keysPressed.hasOwnProperty(e.key)) keysPressed[e.key] = true; if (e.code === 'Space') { e.preventDefault(); activateBoost(); }
+            const key = e.key.toLowerCase();
+            if (key === 'p') {
+                e.preventDefault();
+                if (!gameOver) {
+                    isPaused = !isPaused;
+                    pauseMessage.style.display = isPaused ? 'block' : 'none';
+                }
+                return;
+            }
+            if (keysPressed.hasOwnProperty(e.key)) keysPressed[e.key] = true;
+            if (e.code === 'Space') { e.preventDefault(); activateBoost(); }
         });
         window.addEventListener('keyup', (e) => { /* ... same as before ... */
             if (keysPressed.hasOwnProperty(e.key)) { keysPressed[e.key] = false; if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') playerVelocity.x = 0; if (e.key === 'ArrowUp' || e.key === 'ArrowDown') playerVelocity.y = 0; }
