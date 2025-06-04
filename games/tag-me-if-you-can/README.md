@@ -23,6 +23,7 @@ side, so play happens on a continuous looped field.
 - **F / Freeze Burst button** – Fire a ring of freezing bullets around the
   player. Hitting the AI freezes it for a few seconds.
 - **Browser refresh** – Restart the game after a Game Over.
+- **R** – Rewind to where you were two seconds ago (8‑second cooldown).
 
 ## Collectables and Boosts
 
@@ -40,5 +41,12 @@ side, so play happens on a continuous looped field.
 The AI periodically shoots orange projectiles at the player. If one hits you,
 "You Were Tagged Back" is displayed and the game stops. Refresh the page to
 play again.
+
+## Rewind Mechanic
+
+Press **R** at any time to instantly return to your position from two seconds
+earlier. This ability has an eight‑second cooldown, displayed at the bottom of
+the game. Use it to escape a tight spot or surprise the AI with an unexpected
+move.
 
 Enjoy the chase!
