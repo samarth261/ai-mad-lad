@@ -146,13 +146,6 @@
             z-index: 6;
         }
 
-        /* Button for firing burst */
-        #burst-button {
-            padding: 4px 10px;
-            font-size: 1em;
-            cursor: pointer;
-        }
-
         /* AI frozen visual indicator */
         #ai.frozen {
             background-color: #85c1e9;
@@ -219,7 +212,6 @@
         <span id="rewind-display">Rewind: Ready</span>
         <span>Controls: Arrow Keys | Spacebar = Boost</span>
         <span>D = Decoy</span>
-        <button id="burst-button">Freeze Burst</button>
     </div>
 
     <script>
@@ -233,7 +225,6 @@
         const boostTokenDisplay = document.getElementById('boost-token-display');
         const shieldDisplay = document.getElementById('shield-display');
         const rewindDisplay = document.getElementById('rewind-display');
-        const burstButton = document.getElementById('burst-button');
 
         // --- Game Constants ---
         const gameAreaWidth = gameArea.offsetWidth;
@@ -847,7 +838,6 @@
             if (keysPressed.hasOwnProperty(e.key)) { keysPressed[e.key] = false; if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') playerVelocity.x = 0; if (e.key === 'ArrowUp' || e.key === 'ArrowDown') playerVelocity.y = 0; }
         });
 
-        burstButton.addEventListener('click', fireBurst);
 
         // --- Game Initialization ---
         document.addEventListener('DOMContentLoaded', () => { /* ... same as before ... */
