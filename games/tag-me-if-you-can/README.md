@@ -24,6 +24,7 @@ side, so play happens on a continuous looped field.
   player. Hitting the AI freezes it for a few seconds.
 - **Browser refresh** – Restart the game after a Game Over.
 - **R** – Rewind to where you were two seconds ago (8‑second cooldown).
+- **D** – Deploy a holographic decoy that lures the AI for three seconds.
 
 ## Collectables and Boosts
 
@@ -48,5 +49,11 @@ Press **R** at any time to instantly return to your position from two seconds
 earlier. This ability has an eight‑second cooldown, displayed at the bottom of
 the game. Use it to escape a tight spot or surprise the AI with an unexpected
 move.
+
+## Holographic Decoy
+
+Press **D** to drop a faint blue decoy at your current location. The AI will
+chase the decoy instead of you for about three seconds, letting you reposition
+or escape danger. The decoy disappears on its own or when a new level loads.
 
 Enjoy the chase!

@@ -135,6 +135,17 @@
             box-shadow: 0 0 5px #00ffff;
         }
 
+        /* Decoy style */
+        .decoy {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            position: absolute;
+            background-color: rgba(52, 152, 219, 0.4);
+            border: 2px dashed #3498db;
+            z-index: 6;
+        }
+
         /* Button for firing burst */
         #burst-button {
             padding: 4px 10px;
@@ -207,6 +218,7 @@
         <span id="shield-display">Shield: None</span>
         <span id="rewind-display">Rewind: Ready</span>
         <span>Controls: Arrow Keys | Spacebar = Boost</span>
+        <span>D = Decoy</span>
         <button id="burst-button">Freeze Burst</button>
     </div>
 
@@ -250,6 +262,7 @@
         const aiMaxSpeed = basePlayerSpeed * 1.5; // Absolute speed cap for AI
         const rewindDuration = 2000; // How far back the rewind jumps (ms)
         const rewindCooldownTime = 8000; // Cooldown between rewinds (ms)
+        const decoyDuration = 3000; // How long a decoy lasts (ms)
 
         // --- Game State Variables ---
         let playerPos = { x: 50, y: 50 };
@@ -276,6 +289,10 @@
         let aiShootCooldown = 0;
         let rewindCooldown = 0;
         let pastPositions = [];
+        let decoyActive = false;
+        let decoyPos = { x: 0, y: 0 };
+        let decoyElement = null;
+        let decoyTimer = 0;
         // AI Movement State
         let currentWanderDirection = { x: Math.random() * 2 - 1, y: Math.random() * 2 - 1 }; // Initial random direction
         let wanderTimer = aiWanderChangeFrequency; // Timer to change wander direction
@@ -484,6 +501,31 @@
             burstCooldown = burstCooldownTime;
         }
 
+        function spawnDecoy() {
+            if (decoyActive || gameOver || isPaused) return;
+            const dEl = document.createElement('div');
+            dEl.className = 'decoy';
+            dEl.style.left = playerPos.x + 'px';
+            dEl.style.top = playerPos.y + 'px';
+            gameArea.appendChild(dEl);
+            decoyElement = dEl;
+            decoyPos = { x: playerPos.x, y: playerPos.y };
+            decoyTimer = decoyDuration;
+            decoyActive = true;
+        }
+
+        function updateDecoy() {
+            if (!decoyActive) return;
+            decoyTimer -= gameLoopIntervalMs;
+            if (decoyTimer <= 0) {
+                if (decoyElement && decoyElement.parentNode === gameArea) {
+                    gameArea.removeChild(decoyElement);
+                }
+                decoyActive = false;
+                decoyElement = null;
+            }
+        }
+
         function movePlayerBullets() {
             for (let i = playerBullets.length - 1; i >= 0; i--) {
                 const bullet = playerBullets[i];
@@ -529,8 +571,10 @@
             let moveVector = { x: 0, y: 0 }; // The calculated direction vector before obstacle checks
 
             // --- Calculate Distance and Determine Mode ---
-            const distanceToPlayer = getDistance(playerPos, aiPos);
-            const mode = distanceToPlayer < aiEvasionDistance ? 'evade' : 'wander';
+            const targetPos = decoyActive ? decoyPos : playerPos;
+            const targetVel = decoyActive ? { x: 0, y: 0 } : playerVelocity;
+            const distanceToTarget = getDistance(targetPos, aiPos);
+            const mode = distanceToTarget < aiEvasionDistance ? 'evade' : 'wander';
 
             // --- Calculate Effective Speed for this frame ---
             // 1. Apply Jitter
@@ -543,8 +587,8 @@
             // 2. Apply Proximity Boost (only in evade mode)
             let proximityBoost = 0;
             if (mode === 'evade') {
-                // Boost increases linearly as player gets closer
-                proximityBoost = aiProximityBoostFactor * (1 - distanceToPlayer / aiEvasionDistance) * basePlayerSpeed; // Boost relative to player speed
+                // Boost increases linearly as target gets closer
+                proximityBoost = aiProximityBoostFactor * (1 - distanceToTarget / aiEvasionDistance) * basePlayerSpeed; // Boost relative to player speed
             }
             let targetSpeed = baseFrameSpeed + proximityBoost;
 
@@ -555,8 +599,8 @@
             if (mode === 'evade') {
                 // Predictive Evasion Logic (same as before)
                 const predictFrames = aiPredictionTime * (1000 / gameLoopIntervalMs);
-                const predictedPlayerX = playerPos.x + playerVelocity.x * predictFrames;
-                const predictedPlayerY = playerPos.y + playerVelocity.y * predictFrames;
+                const predictedPlayerX = targetPos.x + targetVel.x * predictFrames;
+                const predictedPlayerY = targetPos.y + targetVel.y * predictFrames;
                 let primaryTargetX = aiPos.x - predictedPlayerX;
                 let primaryTargetY = aiPos.y - predictedPlayerY;
                 const primaryMagnitude = Math.sqrt(primaryTargetX * primaryTargetX + primaryTargetY * primaryTargetY);
@@ -661,6 +705,7 @@
             player.style.left = playerPos.x + 'px'; player.style.top = playerPos.y + 'px'; ai.style.left = aiPos.x + 'px'; ai.style.top = aiPos.y + 'px';
         }
         function gameLoop() { /* ... same as before ... */
+            updateDecoy();
             if (gameOver || isPaused) return;
             // Record current position for rewind history
             pastPositions.push({ x: playerPos.x, y: playerPos.y, t: Date.now() });
@@ -702,6 +747,11 @@
             player.classList.remove('shielded');
             aiFrozen = false;
             ai.classList.remove('frozen');
+            if (decoyActive && decoyElement && decoyElement.parentNode === gameArea) {
+                gameArea.removeChild(decoyElement);
+            }
+            decoyActive = false;
+            decoyElement = null;
         }
         function loadLevel(levelNum) { /* ... same as before ... */
             clearLevelElements();
@@ -778,6 +828,11 @@
             if (key === 'f') {
                 e.preventDefault();
                 fireBurst();
+                return;
+            }
+            if (key === 'd') {
+                e.preventDefault();
+                spawnDecoy();
                 return;
             }
             if (key === 'r') {
