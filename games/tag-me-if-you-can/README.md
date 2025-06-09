@@ -25,6 +25,7 @@ side, so play happens on a continuous looped field.
 - **Browser refresh** – Restart the game after a Game Over.
 - **R** – Rewind to where you were two seconds ago (8‑second cooldown).
 - **D** – Deploy a holographic decoy that lures the AI for three seconds.
+- **Q** – Instantly swap positions with the AI (10‑second cooldown).
 
 ## Collectables and Boosts
 
@@ -57,3 +58,9 @@ chase the decoy instead of you for about three seconds, letting you reposition
 or escape danger. The decoy disappears on its own or when a new level loads.
 
 Enjoy the chase!
+
+## Quantum Swap
+
+Press **Q** to instantly trade places with the AI. This obscure ability can
+flip a dangerous situation in your favor or drop the AI into a trap. It has a
+ten‑second cooldown shown below the game.
