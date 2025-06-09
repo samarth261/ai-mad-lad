@@ -210,6 +210,7 @@
         <span id="boost-token-display">Boost Tokens: 0 / 5</span>
         <span id="shield-display">Shield: None</span>
         <span id="rewind-display">Rewind: Ready</span>
+        <span id="swap-display">Swap: Ready</span>
         <span>Controls: Arrow Keys | Spacebar = Boost</span>
         <span>D = Decoy</span>
     </div>
@@ -225,6 +226,7 @@
         const boostTokenDisplay = document.getElementById('boost-token-display');
         const shieldDisplay = document.getElementById('shield-display');
         const rewindDisplay = document.getElementById('rewind-display');
+        const swapDisplay = document.getElementById('swap-display');
 
         // --- Game Constants ---
         const gameAreaWidth = gameArea.offsetWidth;
@@ -254,6 +256,7 @@
         const rewindDuration = 2000; // How far back the rewind jumps (ms)
         const rewindCooldownTime = 8000; // Cooldown between rewinds (ms)
         const decoyDuration = 3000; // How long a decoy lasts (ms)
+        const swapCooldownTime = 10000; // Cooldown between quantum swaps (ms)
 
         // --- Game State Variables ---
         let playerPos = { x: 50, y: 50 };
@@ -279,6 +282,7 @@
         let isPaused = false;
         let aiShootCooldown = 0;
         let rewindCooldown = 0;
+        let swapCooldown = 0;
         let pastPositions = [];
         let decoyActive = false;
         let decoyPos = { x: 0, y: 0 };
@@ -426,6 +430,13 @@
                 rewindDisplay.textContent = `Rewind: ${(rewindCooldown/1000).toFixed(1)}s`;
             }
         }
+        function updateSwapDisplay() {
+            if (swapCooldown <= 0) {
+                swapDisplay.textContent = 'Swap: Ready';
+            } else {
+                swapDisplay.textContent = `Swap: ${(swapCooldown/1000).toFixed(1)}s`;
+            }
+        }
         function rewindPlayer() {
             if (rewindCooldown > 0 || pastPositions.length === 0 || gameOver || isPaused) return;
             const pos = pastPositions[0];
@@ -434,6 +445,7 @@
             pastPositions = [];
             rewindCooldown = rewindCooldownTime;
             updateRewindDisplay();
+            updateSwapDisplay();
             render();
         }
         function activateBoost() { /* ... same as before ... */
@@ -515,6 +527,19 @@
                 decoyActive = false;
                 decoyElement = null;
             }
+        }
+
+        function quantumSwap() {
+            if (swapCooldown > 0 || gameOver || isPaused) return;
+            const tempX = playerPos.x;
+            const tempY = playerPos.y;
+            playerPos.x = aiPos.x;
+            playerPos.y = aiPos.y;
+            aiPos.x = tempX;
+            aiPos.y = tempY;
+            swapCooldown = swapCooldownTime;
+            updateSwapDisplay();
+            render();
         }
 
         function movePlayerBullets() {
@@ -707,7 +732,12 @@
                 rewindCooldown -= gameLoopIntervalMs;
                 if (rewindCooldown < 0) rewindCooldown = 0;
             }
+            if (swapCooldown > 0) {
+                swapCooldown -= gameLoopIntervalMs;
+                if (swapCooldown < 0) swapCooldown = 0;
+            }
             updateRewindDisplay();
+            updateSwapDisplay();
             handlePlayerInput();
             moveAI();
             moveProjectiles();
@@ -765,6 +795,7 @@
                 boostTimer = null;
             }
             updateBoostTokenDisplay();
+            updateSwapDisplay();
             aiShootCooldown = aiShootCooldownTime / 2;
             const layoutIndex = levelNum % levelLayouts.length;
             const layout = levelLayouts[layoutIndex];
@@ -829,6 +860,11 @@
             if (key === 'r') {
                 e.preventDefault();
                 rewindPlayer();
+                return;
+            }
+            if (key === 'q') {
+                e.preventDefault();
+                quantumSwap();
                 return;
             }
             if (keysPressed.hasOwnProperty(e.key)) keysPressed[e.key] = true;
