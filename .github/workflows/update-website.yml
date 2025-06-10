@@ -22,11 +22,13 @@ jobs:
           git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/samarth261/samarth261.github.io.git website
       - name: Update ai-mad-lad
         run: |
-          cd website/ai-mad-lad
-          remote=https://x-access-token:${{ secrets.GH_PAT }}@github.com/
-          remote+=samarth261/ai-mad-lad.git
-          git remote set-url origin "$remote"
-          git pull origin main
+          cd website
+          git submodule update --init --recursive
+          cd ai-mad-lad
+          # remote=https://x-access-token:${{ secrets.GH_PAT }}@github.com/
+          # remote+=samarth261/ai-mad-lad.git
+          # git remote set-url origin "$remote"
+          # git pull origin main
           cd ..
           git add .
           git commit -m "Update ai-mad-lad" || echo "No changes to commit"
