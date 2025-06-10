@@ -22,9 +22,8 @@ jobs:
           git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/samarth261/samarth261.github.io.git website
       - name: Update ai-mad-lad
         run: |
-          cd website/ai-mad-lad
-          git pull origin main
-          cd ..
+          git -C website/ai-mad-lad pull origin main
+          cd website
           git add .
           git commit -m "Update ai-mad-lad" || echo "No changes to commit"
       - name: Push changes
