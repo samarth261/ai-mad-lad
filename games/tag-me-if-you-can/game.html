@@ -386,21 +386,45 @@
         function checkObstacleCollision(proposedPos, size = characterSize) { /* ... same as before ... */
             const proposedRect = getBoundingBox(null, proposedPos, size); for (const obs of obstacles) { const obsRect = getObstacleBoundingBox(obs.data); if (isColliding(proposedRect, obsRect)) { return true; } } return false;
         }
-        function projectileHitsObstacle(startPos, endPos, size = projectileSize) {
-            const steps = Math.ceil(getDistance(startPos, endPos));
-            const stepX = (endPos.x - startPos.x) / steps;
-            const stepY = (endPos.y - startPos.y) / steps;
-            let pos = { x: startPos.x, y: startPos.y };
-            for (let s = 0; s <= steps; s++) {
-                const rect = getBoundingBox(null, pos, size);
-                for (const obs of obstacles) {
-                    const obsRect = getObstacleBoundingBox(obs.data);
-                    if (isColliding(rect, obsRect)) {
-                        return true;
+        // Line/rectangle intersection helper used for accurate projectile collision
+        function lineIntersectsRect(p1, p2, rect) {
+            let t0 = 0, t1 = 1;
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const p = [-dx, dx, -dy, dy];
+            const q = [p1.x - rect.left, rect.right - p1.x, p1.y - rect.top, rect.bottom - p1.y];
+            for (let i = 0; i < 4; i++) {
+                if (p[i] === 0) {
+                    if (q[i] < 0) return false; // Parallel and outside
+                } else {
+                    const r = q[i] / p[i];
+                    if (p[i] < 0) {
+                        if (r > t1) return false;
+                        if (r > t0) t0 = r;
+                    } else {
+                        if (r < t0) return false;
+                        if (r < t1) t1 = r;
                     }
                 }
-                pos.x += stepX;
-                pos.y += stepY;
+            }
+            return true;
+        }
+
+        function projectileHitsObstacle(startPos, endPos, size = projectileSize) {
+            const startCenter = { x: startPos.x + size / 2, y: startPos.y + size / 2 };
+            const endCenter = { x: endPos.x + size / 2, y: endPos.y + size / 2 };
+            for (const obs of obstacles) {
+                const obsRect = getObstacleBoundingBox(obs.data);
+                // Expand rectangle by projectile size so grazing hits count
+                const expanded = {
+                    left: obsRect.left - size,
+                    right: obsRect.right + size,
+                    top: obsRect.top - size,
+                    bottom: obsRect.bottom + size
+                };
+                if (lineIntersectsRect(startCenter, endCenter, expanded)) {
+                    return true;
+                }
             }
             return false;
         }
