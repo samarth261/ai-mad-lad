@@ -25,7 +25,6 @@ jobs:
           cd website/ai-mad-lad
           git pull origin main
           cd ..
-          ls > ls.txt
           git add .
           git commit -m "Update ai-mad-lad" || echo "No changes to commit"
       - name: Push changes
