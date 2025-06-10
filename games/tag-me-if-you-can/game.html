@@ -479,13 +479,13 @@
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 const proj = projectiles[i];
                 const nextPos = { x: proj.pos.x + proj.velocity.x, y: proj.pos.y + proj.velocity.y };
-                if (projectileHitsObstacle(proj.pos, nextPos)) {
+                if (checkObstacleCollision(nextPos, projectileSize) || projectileHitsObstacle(proj.pos, nextPos)) {
                     if (proj.element.parentNode === gameArea) gameArea.removeChild(proj.element);
                     projectiles.splice(i, 1);
                     continue;
                 }
                 const wrappedPos = wrapPosition(nextPos, projectileSize);
-                if (projectileHitsObstacle(nextPos, wrappedPos)) {
+                if (checkObstacleCollision(wrappedPos, projectileSize) || projectileHitsObstacle(nextPos, wrappedPos)) {
                     if (proj.element.parentNode === gameArea) gameArea.removeChild(proj.element);
                     projectiles.splice(i, 1);
                     continue;
