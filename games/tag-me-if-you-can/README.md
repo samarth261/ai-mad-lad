@@ -26,6 +26,8 @@ side, so play happens on a continuous looped field.
 - **R** – Rewind to where you were two seconds ago (8‑second cooldown).
 - **D** – Deploy a holographic decoy that lures the AI for three seconds.
 - **Q** – Instantly swap positions with the AI (10‑second cooldown).
+- **C** – Temporarily control the AI's movement for two seconds
+  (12‑second cooldown).
 
 ## Collectables and Boosts
 
@@ -64,3 +66,10 @@ Enjoy the chase!
 Press **Q** to instantly trade places with the AI. This obscure ability can
 flip a dangerous situation in your favor or drop the AI into a trap. It has a
 ten‑second cooldown shown below the game.
+
+## Puppeteer Hack
+
+Press **C** to override the AI and control its movement with the arrow keys
+for about two seconds. Your own player stays put while you steer the opponent.
+Use this to guide the AI into obstacles or away from boost tokens. The effect
+has a twelve‑second cooldown displayed at the bottom of the game.

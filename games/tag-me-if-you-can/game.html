@@ -211,8 +211,10 @@
         <span id="shield-display">Shield: None</span>
         <span id="rewind-display">Rewind: Ready</span>
         <span id="swap-display">Swap: Ready</span>
+        <span id="control-display">Control: Ready</span>
         <span>Controls: Arrow Keys | Spacebar = Boost</span>
         <span>D = Decoy</span>
+        <span>C = Control AI</span>
     </div>
 
     <script>
@@ -227,6 +229,7 @@
         const shieldDisplay = document.getElementById('shield-display');
         const rewindDisplay = document.getElementById('rewind-display');
         const swapDisplay = document.getElementById('swap-display');
+        const controlDisplay = document.getElementById('control-display');
 
         // --- Game Constants ---
         const gameAreaWidth = gameArea.offsetWidth;
@@ -257,6 +260,8 @@
         const rewindCooldownTime = 8000; // Cooldown between rewinds (ms)
         const decoyDuration = 3000; // How long a decoy lasts (ms)
         const swapCooldownTime = 10000; // Cooldown between quantum swaps (ms)
+        const mindControlDuration = 2000; // How long player can control AI (ms)
+        const mindControlCooldownTime = 12000; // Cooldown between uses (ms)
 
         // --- Game State Variables ---
         let playerPos = { x: 50, y: 50 };
@@ -283,6 +288,9 @@
         let aiShootCooldown = 0;
         let rewindCooldown = 0;
         let swapCooldown = 0;
+        let mindControlCooldown = 0;
+        let mindControlTimer = 0;
+        let mindControlActive = false;
         let pastPositions = [];
         let decoyActive = false;
         let decoyPos = { x: 0, y: 0 };
@@ -479,6 +487,22 @@
                 swapDisplay.textContent = `Swap: ${(swapCooldown/1000).toFixed(1)}s`;
             }
         }
+        function updateControlDisplay() {
+            if (mindControlCooldown <= 0) {
+                controlDisplay.textContent = 'Control: Ready';
+            } else {
+                controlDisplay.textContent = `Control: ${(mindControlCooldown/1000).toFixed(1)}s`;
+            }
+        }
+        function startMindControl() {
+            if (mindControlCooldown > 0 || mindControlActive || gameOver || isPaused) return;
+            mindControlActive = true;
+            mindControlTimer = mindControlDuration;
+            mindControlCooldown = mindControlCooldownTime;
+            playerVelocity.x = 0;
+            playerVelocity.y = 0;
+            updateControlDisplay();
+        }
         function rewindPlayer() {
             if (rewindCooldown > 0 || pastPositions.length === 0 || gameOver || isPaused) return;
             const pos = pastPositions[0];
@@ -494,6 +518,23 @@
             if (boostTokensCollected >= boostRequirement && !isBoosting && !gameOver) { isBoosting = true; boostTokensCollected -= boostRequirement; updateBoostTokenDisplay(); playerSpeed = basePlayerSpeed * 2; player.classList.add('boosting'); if (boostTimer) clearTimeout(boostTimer); boostTimer = setTimeout(() => { isBoosting = false; playerSpeed = basePlayerSpeed; player.classList.remove('boosting'); boostTimer = null; }, boostDuration); }
         }
         function handlePlayerInput() { /* ... same as before ... */
+            if (mindControlActive) {
+                let dx = 0; let dy = 0;
+                if (keysPressed.ArrowLeft) dx -= currentAiSpeed;
+                if (keysPressed.ArrowRight) dx += currentAiSpeed;
+                if (keysPressed.ArrowUp) dy -= currentAiSpeed;
+                if (keysPressed.ArrowDown) dy += currentAiSpeed;
+                let nextX = aiPos.x + dx;
+                let nextY = aiPos.y + dy;
+                let tempXPos = wrapPosition({ x: nextX, y: aiPos.y }, characterSize).x;
+                if (checkObstacleCollision({ x: tempXPos, y: aiPos.y })) { nextX = aiPos.x; }
+                let tempYPos = wrapPosition({ x: nextX, y: nextY }, characterSize).y;
+                if (checkObstacleCollision({ x: nextX, y: tempYPos })) { nextY = aiPos.y; }
+                aiPos.x = nextX;
+                aiPos.y = nextY;
+                aiPos = wrapPosition(aiPos, characterSize);
+                return;
+            }
             let dx = 0; let dy = 0; if (keysPressed.ArrowLeft) dx -= playerSpeed; if (keysPressed.ArrowRight) dx += playerSpeed; if (keysPressed.ArrowUp) dy -= playerSpeed; if (keysPressed.ArrowDown) dy += playerSpeed; playerVelocity.x = dx; playerVelocity.y = dy; let nextX = playerPos.x + dx; let nextY = playerPos.y + dy; let tempXPos = wrapPosition({ x: nextX, y: playerPos.y }, characterSize).x; if (checkObstacleCollision({ x: tempXPos, y: playerPos.y })) { nextX = playerPos.x; } let tempYPos = wrapPosition({ x: nextX, y: nextY }, characterSize).y; if (checkObstacleCollision({ x: nextX, y: tempYPos })) { nextY = playerPos.y; } playerPos.x = nextX; playerPos.y = nextY; playerPos = wrapPosition(playerPos, characterSize);
         }
         function createProjectile() { /* ... same as before ... */
@@ -806,10 +847,19 @@
                 swapCooldown -= gameLoopIntervalMs;
                 if (swapCooldown < 0) swapCooldown = 0;
             }
+            if (mindControlCooldown > 0) {
+                mindControlCooldown -= gameLoopIntervalMs;
+                if (mindControlCooldown < 0) mindControlCooldown = 0;
+            }
+            if (mindControlActive) {
+                mindControlTimer -= gameLoopIntervalMs;
+                if (mindControlTimer <= 0) mindControlActive = false;
+            }
             updateRewindDisplay();
             updateSwapDisplay();
+            updateControlDisplay();
             handlePlayerInput();
-            moveAI();
+            if (!mindControlActive) moveAI();
             moveProjectiles();
             movePlayerBullets();
             if (burstCooldown > 0) burstCooldown -= gameLoopIntervalMs;
@@ -843,6 +893,7 @@
             }
             decoyActive = false;
             decoyElement = null;
+            mindControlActive = false;
         }
         function loadLevel(levelNum) { /* ... same as before ... */
             clearLevelElements();
@@ -866,6 +917,7 @@
             }
             updateBoostTokenDisplay();
             updateSwapDisplay();
+            updateControlDisplay();
             aiShootCooldown = aiShootCooldownTime / 2;
             const layoutIndex = levelNum % levelLayouts.length;
             const layout = levelLayouts[layoutIndex];
@@ -935,6 +987,11 @@
             if (key === 'q') {
                 e.preventDefault();
                 quantumSwap();
+                return;
+            }
+            if (key === 'c') {
+                e.preventDefault();
+                startMindControl();
                 return;
             }
             if (keysPressed.hasOwnProperty(e.key)) keysPressed[e.key] = true;
