@@ -22,9 +22,12 @@ jobs:
       - name: Update submodule
         run: |
           cd website
-          git submodule update --remote ai-mad-lad
-          git add ai-mad-lad
-          git commit -m "Update ai-mad-lad submodule" || echo "No changes to commit"
+          cd ai-mad-lad
+          # git submodule update --remote ai-mad-lad
+          # git add ai-mad-lad
+          git pull
+          cd ..
+          git add . && git commit -m "Update ai-mad-lad submodule" || echo "No changes to commit"
       - name: Push changes
         run: |
           cd website
