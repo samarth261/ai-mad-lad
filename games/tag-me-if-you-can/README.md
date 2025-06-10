@@ -28,6 +28,9 @@ side, so play happens on a continuous looped field.
 - **Q** – Instantly swap positions with the AI (10‑second cooldown).
 - **C** – Temporarily control the AI's movement for two seconds
   (12‑second cooldown).
+- **E** – Release a Temporal Echo that retraces your last two seconds of
+  movement. If the echo touches the AI, it freezes for a moment
+  (9‑second cooldown).
 
 ## Collectables and Boosts
 
@@ -73,3 +76,10 @@ Press **C** to override the AI and control its movement with the arrow keys
 for about two seconds. Your own player stays put while you steer the opponent.
 Use this to guide the AI into obstacles or away from boost tokens. The effect
 has a twelve‑second cooldown displayed at the bottom of the game.
+
+## Temporal Echo
+
+Press **E** to summon a shimmering afterimage that faithfully retraces the path
+you took over the previous two seconds. The echo is ethereal, passing through
+obstacles, but if it brushes the AI, the opponent becomes frozen for a short
+time. Timing its release lets you snare the AI with your own past movements.
