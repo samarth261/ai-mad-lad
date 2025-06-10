@@ -386,6 +386,24 @@
         function checkObstacleCollision(proposedPos, size = characterSize) { /* ... same as before ... */
             const proposedRect = getBoundingBox(null, proposedPos, size); for (const obs of obstacles) { const obsRect = getObstacleBoundingBox(obs.data); if (isColliding(proposedRect, obsRect)) { return true; } } return false;
         }
+        function projectileHitsObstacle(startPos, endPos, size = projectileSize) {
+            const steps = Math.ceil(getDistance(startPos, endPos));
+            const stepX = (endPos.x - startPos.x) / steps;
+            const stepY = (endPos.y - startPos.y) / steps;
+            let pos = { x: startPos.x, y: startPos.y };
+            for (let s = 0; s <= steps; s++) {
+                const rect = getBoundingBox(null, pos, size);
+                for (const obs of obstacles) {
+                    const obsRect = getObstacleBoundingBox(obs.data);
+                    if (isColliding(rect, obsRect)) {
+                        return true;
+                    }
+                }
+                pos.x += stepX;
+                pos.y += stepY;
+            }
+            return false;
+        }
         function checkTokenCollision(playerRect) { /* ... same as before ... */
             for (let i = boostTokens.length - 1; i >= 0; i--) { const token = boostTokens[i]; const tokenRect = getBoundingBox(null, token.data, tokenSize); if (isColliding(playerRect, tokenRect)) { collectBoostToken(i); } }
         }
@@ -460,13 +478,24 @@
         function moveProjectiles() { /* ... same as before ... */
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 const proj = projectiles[i];
-                proj.pos.x += proj.velocity.x;
-                proj.pos.y += proj.velocity.y;
-                proj.pos = wrapPosition(proj.pos, projectileSize);
+                const nextPos = { x: proj.pos.x + proj.velocity.x, y: proj.pos.y + proj.velocity.y };
+                if (projectileHitsObstacle(proj.pos, nextPos)) {
+                    if (proj.element.parentNode === gameArea) gameArea.removeChild(proj.element);
+                    projectiles.splice(i, 1);
+                    continue;
+                }
+                const wrappedPos = wrapPosition(nextPos, projectileSize);
+                if (projectileHitsObstacle(nextPos, wrappedPos)) {
+                    if (proj.element.parentNode === gameArea) gameArea.removeChild(proj.element);
+                    projectiles.splice(i, 1);
+                    continue;
+                }
+                proj.pos = wrappedPos;
                 proj.element.style.left = proj.pos.x + 'px';
                 proj.element.style.top = proj.pos.y + 'px';
 
                 const projRect = getBoundingBox(null, proj.pos, projectileSize);
+
 
                 // Remove projectile if it hits any obstacle
                 let hitWall = false;
@@ -482,7 +511,7 @@
                     }
                 }
                 if (hitWall) continue;
-
+              
                 const playerRect = getBoundingBox(player, playerPos, characterSize);
                 if (isColliding(projRect, playerRect)) {
                     if (hasShield) {
