@@ -168,6 +168,17 @@
             z-index: 7;
         }
 
+        /* AI Clone style */
+        .ai-clone {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            position: absolute;
+            background-color: rgba(231, 76, 60, 0.5);
+            border: 2px dashed #e74c3c;
+            z-index: 8;
+        }
+
         /* AI frozen visual indicator */
         #ai.frozen {
             background-color: #85c1e9;
@@ -293,6 +304,15 @@
         const snareDuration = 5000; // How long the snare stays on the field (ms)
         const snareFreezeDuration = 3000; // Freeze time when AI triggers snare
         const snareCooldownTime = 10000; // Cooldown between snares (ms)
+        const aiTeleportCooldownTime = 7000;
+        const aiTeleportRange = 120;
+        const aiDashCooldownTime = 6000;
+        const aiDashDuration = 800;
+        const aiDashSpeedMultiplier = 3;
+        const aiCloneCooldownTime = 10000;
+        const aiCloneDuration = 4000;
+        const aiCloneSpeed = 2.8;
+        const autoUseAbilities = true;
 
 
         // --- Game State Variables ---
@@ -342,6 +362,12 @@
         let currentWanderDirection = { x: Math.random() * 2 - 1, y: Math.random() * 2 - 1 }; // Initial random direction
         let wanderTimer = aiWanderChangeFrequency; // Timer to change wander direction
         let currentJitterOffset = 0; // Current random speed offset
+        let aiTeleportCooldown = aiTeleportCooldownTime;
+        let aiDashCooldown = aiDashCooldownTime;
+        let aiDashTimer = 0;
+        let aiCloneCooldown = aiCloneCooldownTime;
+        const aiClones = [];
+
 
         const keysPressed = {
             ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false
@@ -498,6 +524,62 @@
         }
 
         // --- Game Logic Functions ---
+        function teleportAI() {
+            for (let i=0;i<10;i++){
+                const angle=Math.random()*Math.PI*2;
+                const dist=Math.random()*aiTeleportRange;
+                const candidate=wrapPosition({x:playerPos.x+Math.cos(angle)*dist,y:playerPos.y+Math.sin(angle)*dist},characterSize);
+                if(!checkObstacleCollision(candidate)){
+                    aiPos.x=candidate.x;
+                    aiPos.y=candidate.y;
+                    return;
+                }
+            }
+        }
+        function startAIDash(){
+            aiDashTimer=aiDashDuration;
+        }
+        function spawnAIClone(){
+            const cEl=document.createElement("div");
+            cEl.className="ai-clone";
+            cEl.style.left=aiPos.x+"px";
+            cEl.style.top=aiPos.y+"px";
+            gameArea.appendChild(cEl);
+            const dx=playerPos.x-aiPos.x;
+            const dy=playerPos.y-aiPos.y;
+            const mag=Math.sqrt(dx*dx+dy*dy)||1;
+            aiClones.push({element:cEl,pos:{x:aiPos.x,y:aiPos.y},velocity:{x:(dx/mag)*aiCloneSpeed,y:(dy/mag)*aiCloneSpeed},timer:aiCloneDuration});
+        }
+        function updateAIClones(){
+            for(let i=aiClones.length-1;i>=0;i--){
+                const c=aiClones[i];
+                c.timer-=gameLoopIntervalMs;
+                c.pos.x+=c.velocity.x;
+                c.pos.y+=c.velocity.y;
+                c.pos=wrapPosition(c.pos,characterSize);
+                c.element.style.left=c.pos.x+"px";
+                c.element.style.top=c.pos.y+"px";
+                if(checkObstacleCollision(c.pos)){
+                    if(c.element.parentNode===gameArea)gameArea.removeChild(c.element);
+                    aiClones.splice(i,1);
+                    continue;
+                }
+                const playerRect=getBoundingBox(player,playerPos,characterSize);
+                const cloneRect=getBoundingBox(null,c.pos,characterSize);
+                if(isColliding(playerRect,cloneRect)){
+                    gameOver=true;
+                    messageDisplay.innerHTML=`You Were Tagged Back!<br><small>(Refresh to play again)</small>`;
+                    messageDisplay.style.display="block";
+                    clearInterval(gameLoopInterval);
+                    gameLoopInterval=null;
+                    return;
+                }
+                if(c.timer<=0){
+                    if(c.element.parentNode===gameArea)gameArea.removeChild(c.element);
+                    aiClones.splice(i,1);
+                }
+            }
+        }
 
         function collectBoostToken(index) { /* ... same as before ... */
             boostTokensCollected++; updateBoostTokenDisplay(); gameArea.removeChild(boostTokens[index].element); boostTokens.splice(index, 1);
@@ -779,6 +861,17 @@
             }
             echoIndex++;
         }
+        function autoTriggerAbilitiesFunc() {
+            if (!autoUseAbilities) return;
+            if (boostTokensCollected >= boostRequirement && !isBoosting) activateBoost();
+            if (burstCooldown <= 0) fireBurst();
+            if (!decoyActive) spawnDecoy();
+            if (rewindCooldown <= 0 && pastPositions.length > 0) rewindPlayer();
+            if (swapCooldown <= 0) quantumSwap();
+            if (mindControlCooldown <= 0 && !mindControlActive) startMindControl();
+            if (echoCooldown <= 0 && !echoActive) spawnTemporalEcho();
+            if (snareCooldown <= 0 && !snareActive) spawnSnare();
+        }
 
         function quantumSwap() {
             if (swapCooldown > 0 || gameOver || isPaused) return;
@@ -860,7 +953,8 @@
             let targetSpeed = baseFrameSpeed + proximityBoost;
 
             // 3. Clamp Speed (Apply min speed and max speed cap)
-            let effectiveSpeed = Math.max(0.5, Math.min(targetSpeed, aiMaxSpeed)); // Ensure minimum speed and apply cap
+            let dashMultiplier = aiDashTimer > 0 ? aiDashSpeedMultiplier : 1;
+            let effectiveSpeed = Math.max(0.5, Math.min(targetSpeed * dashMultiplier, aiMaxSpeed));
 
             // --- Calculate Movement Direction Vector ---
             if (mode === 'evade') {
@@ -1003,16 +1097,38 @@
                 mindControlTimer -= gameLoopIntervalMs;
                 if (mindControlTimer <= 0) mindControlActive = false;
             }
-            updateRewindDisplay();
-            updateSwapDisplay();
-            updateControlDisplay();
             updateEchoDisplay();
+            if (aiTeleportCooldown > 0) {
+                aiTeleportCooldown -= gameLoopIntervalMs;
+            } else {
+                teleportAI();
+                aiTeleportCooldown = aiTeleportCooldownTime;
+            }
+            if (aiDashCooldown > 0) {
+                aiDashCooldown -= gameLoopIntervalMs;
+            } else {
+                startAIDash();
+                aiDashCooldown = aiDashCooldownTime;
+            }
+            if (aiDashTimer > 0) {
+                aiDashTimer -= gameLoopIntervalMs;
+                if (aiDashTimer < 0) aiDashTimer = 0;
+            }
+            if (aiCloneCooldown > 0) {
+                aiCloneCooldown -= gameLoopIntervalMs;
+            } else {
+                spawnAIClone();
+                aiCloneCooldown = aiCloneCooldownTime;
+            }
+
             updateSnareDisplay();
             handlePlayerInput();
             if (!mindControlActive) moveAI();
+            autoTriggerAbilitiesFunc();
             updateEcho();
             updateSnare();
             moveProjectiles();
+            updateAIClones();
             movePlayerBullets();
             if (burstCooldown > 0) burstCooldown -= gameLoopIntervalMs;
             if (!gameOver) {
@@ -1057,6 +1173,13 @@
             snareElement = null;
             snareCooldown = 0;
             updateSnareDisplay();
+            aiClones.forEach(c => { if (c.element.parentNode === gameArea) gameArea.removeChild(c.element); });
+            aiClones.length = 0;
+            aiTeleportCooldown = aiTeleportCooldownTime;
+            aiDashCooldown = aiDashCooldownTime;
+            aiDashTimer = 0;
+            aiCloneCooldown = aiCloneCooldownTime;
+
             mindControlActive = false;
         }
         function loadLevel(levelNum) { /* ... same as before ... */

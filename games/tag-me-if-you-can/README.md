@@ -90,3 +90,12 @@ Press **Z** to drop a faint white snare at your feet. The trap stays in place
 for about five seconds. If the AI steps on it, the opponent is frozen in time
 for three seconds, giving you a brief opening to tag it or escape. The ability
 has a ten‑second cooldown shown below the game.
+
+## AI Upgrades and Automatic Powers
+
+- **Teleportation:** The opponent now warps close to your position every few seconds.
+- **Dash Burst:** The AI occasionally surges forward with extra speed, making escapes trickier.
+- **Phantom Clone:** A translucent copy of the AI periodically spawns and chases you. Touching it ends the game just like the real AI.
+- **Automatic Player Abilities:** All of your special powers trigger on their own whenever they are off cooldown. You can still use the original keys, but expect boosts, decoys and other tricks to fire constantly.
+
+These additions turn each round into nonstop chaos with the AI using new moves and your abilities activating repeatedly on their own.
