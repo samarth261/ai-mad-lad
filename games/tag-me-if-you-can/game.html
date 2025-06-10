@@ -496,6 +496,22 @@
 
                 const projRect = getBoundingBox(null, proj.pos, projectileSize);
 
+
+                // Remove projectile if it hits any obstacle
+                let hitWall = false;
+                for (const obs of obstacles) {
+                    const obsRect = getObstacleBoundingBox(obs.data);
+                    if (isColliding(projRect, obsRect)) {
+                        if (proj.element.parentNode === gameArea) {
+                            gameArea.removeChild(proj.element);
+                        }
+                        projectiles.splice(i, 1);
+                        hitWall = true;
+                        break;
+                    }
+                }
+                if (hitWall) continue;
+              
                 const playerRect = getBoundingBox(player, playerPos, characterSize);
                 if (isColliding(projRect, playerRect)) {
                     if (hasShield) {
