@@ -25,7 +25,7 @@ side, so play happens on a continuous looped field.
 - **Browser refresh** – Restart the game after a Game Over.
 - **D** – Deploy a holographic decoy that lures the AI for three seconds.
 - **C** – Temporarily control the AI's movement for two seconds
-  (12‑second cooldown).
+  (12‑second cooldown). (to be removed)
 - **E** – Release a Temporal Echo that retraces your last two seconds of
   movement. If the echo touches the AI, it freezes for a moment
   (9‑second cooldown).
