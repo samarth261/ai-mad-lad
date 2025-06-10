@@ -1,0 +1,29 @@
+name: Update website submodule
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  update-submodule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Configure git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+      - name: Clone website repository
+        run: |
+          git clone https://x-access-token:${{ secrets.PUSH_TOKEN }}@github.com/samarth261/samarth261.github.io.git website
+      - name: Update submodule
+        run: |
+          cd website
+          git submodule update --remote ai-mad-lad
+          git add ai-mad-lad
+          git commit -m "Update ai-mad-lad submodule" || echo "No changes to commit"
+      - name: Push changes
+        run: |
+          cd website
+          git push
