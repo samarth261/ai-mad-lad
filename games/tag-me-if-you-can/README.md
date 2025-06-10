@@ -83,3 +83,10 @@ Press **E** to summon a shimmering afterimage that faithfully retraces the path
 you took over the previous two seconds. The echo is ethereal, passing through
 obstacles, but if it brushes the AI, the opponent becomes frozen for a short
 time. Timing its release lets you snare the AI with your own past movements.
+
+## Quantum Snare
+
+Press **Z** to drop a faint white snare at your feet. The trap stays in place
+for about five seconds. If the AI steps on it, the opponent is frozen in time
+for three seconds, giving you a brief opening to tag it or escape. The ability
+has a ten‑second cooldown shown below the game.
