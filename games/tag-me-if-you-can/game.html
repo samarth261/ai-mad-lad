@@ -157,6 +157,17 @@
             z-index: 7;
         }
 
+        /* Quantum Snare style */
+        .snare {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.25);
+            border: 2px dashed #ecf0f1;
+            z-index: 7;
+        }
+
         /* AI frozen visual indicator */
         #ai.frozen {
             background-color: #85c1e9;
@@ -224,6 +235,7 @@
         <span id="swap-display">Swap: Ready</span>
         <span id="control-display">Control: Ready</span>
         <span id="echo-display">Echo: Ready</span>
+        <span id="snare-display">Snare: Ready</span>
         <span>Controls: Arrow Keys | Spacebar = Boost</span>
         <span>D = Decoy</span>
         <span>C = Control AI</span>
@@ -244,6 +256,7 @@
         const swapDisplay = document.getElementById('swap-display');
         const controlDisplay = document.getElementById('control-display');
         const echoDisplay = document.getElementById('echo-display');
+        const snareDisplay = document.getElementById('snare-display');
 
         // --- Game Constants ---
         const gameAreaWidth = gameArea.offsetWidth;
@@ -277,6 +290,9 @@
         const mindControlDuration = 2000; // How long player can control AI (ms)
         const mindControlCooldownTime = 12000; // Cooldown between uses (ms)
         const echoCooldownTime = 9000; // Cooldown for Temporal Echo (ms)
+        const snareDuration = 5000; // How long the snare stays on the field (ms)
+        const snareFreezeDuration = 3000; // Freeze time when AI triggers snare
+        const snareCooldownTime = 10000; // Cooldown between snares (ms)
 
 
         // --- Game State Variables ---
@@ -317,6 +333,11 @@
         let echoPath = [];
         let echoElement = null;
         let echoIndex = 0;
+        let snareActive = false;
+        let snarePos = { x: 0, y: 0 };
+        let snareElement = null;
+        let snareTimer = 0;
+        let snareCooldown = 0;
         // AI Movement State
         let currentWanderDirection = { x: Math.random() * 2 - 1, y: Math.random() * 2 - 1 }; // Initial random direction
         let wanderTimer = aiWanderChangeFrequency; // Timer to change wander direction
@@ -523,6 +544,14 @@
                 echoDisplay.textContent = `Echo: ${(echoCooldown/1000).toFixed(1)}s`;
             }
         }
+
+        function updateSnareDisplay() {
+            if (snareCooldown <= 0) {
+                snareDisplay.textContent = 'Snare: Ready';
+            } else {
+                snareDisplay.textContent = `Snare: ${(snareCooldown/1000).toFixed(1)}s`;
+            }
+        }
         function startMindControl() {
             if (mindControlCooldown > 0 || mindControlActive || gameOver || isPaused) return;
             mindControlActive = true;
@@ -680,6 +709,46 @@
             echoActive = true;
             echoCooldown = echoCooldownTime;
             updateEchoDisplay();
+        }
+
+        function spawnSnare() {
+            if (snareCooldown > 0 || snareActive || gameOver || isPaused) return;
+            const sEl = document.createElement('div');
+            sEl.className = 'snare';
+            sEl.style.left = playerPos.x + 'px';
+            sEl.style.top = playerPos.y + 'px';
+            gameArea.appendChild(sEl);
+            snareElement = sEl;
+            snarePos = { x: playerPos.x, y: playerPos.y };
+            snareTimer = snareDuration;
+            snareActive = true;
+            snareCooldown = snareCooldownTime;
+            updateSnareDisplay();
+        }
+
+        function updateSnare() {
+            if (!snareActive) return;
+            snareTimer -= gameLoopIntervalMs;
+            if (snareTimer <= 0) {
+                if (snareElement && snareElement.parentNode === gameArea) {
+                    gameArea.removeChild(snareElement);
+                }
+                snareActive = false;
+                snareElement = null;
+                return;
+            }
+            const aiRect = getBoundingBox(ai, aiPos, characterSize);
+            const snareRect = getBoundingBox(null, snarePos, 20);
+            if (isColliding(aiRect, snareRect)) {
+                aiFrozen = true;
+                aiFreezeTimer = snareFreezeDuration;
+                ai.classList.add('frozen');
+                if (snareElement && snareElement.parentNode === gameArea) {
+                    gameArea.removeChild(snareElement);
+                }
+                snareActive = false;
+                snareElement = null;
+            }
         }
 
         function updateEcho() {
@@ -926,6 +995,10 @@
                 echoCooldown -= gameLoopIntervalMs;
                 if (echoCooldown < 0) echoCooldown = 0;
             }
+            if (snareCooldown > 0) {
+                snareCooldown -= gameLoopIntervalMs;
+                if (snareCooldown < 0) snareCooldown = 0;
+            }
             if (mindControlActive) {
                 mindControlTimer -= gameLoopIntervalMs;
                 if (mindControlTimer <= 0) mindControlActive = false;
@@ -934,9 +1007,11 @@
             updateSwapDisplay();
             updateControlDisplay();
             updateEchoDisplay();
+            updateSnareDisplay();
             handlePlayerInput();
             if (!mindControlActive) moveAI();
             updateEcho();
+            updateSnare();
             moveProjectiles();
             movePlayerBullets();
             if (burstCooldown > 0) burstCooldown -= gameLoopIntervalMs;
@@ -975,6 +1050,13 @@
             }
             echoActive = false;
             echoElement = null;
+            if (snareActive && snareElement && snareElement.parentNode === gameArea) {
+                gameArea.removeChild(snareElement);
+            }
+            snareActive = false;
+            snareElement = null;
+            snareCooldown = 0;
+            updateSnareDisplay();
             mindControlActive = false;
         }
         function loadLevel(levelNum) { /* ... same as before ... */
@@ -1002,6 +1084,8 @@
             updateControlDisplay();
             echoCooldown = 0;
             updateEchoDisplay();
+            snareCooldown = 0;
+            updateSnareDisplay();
             aiShootCooldown = aiShootCooldownTime / 2;
             const layoutIndex = levelNum % levelLayouts.length;
             const layout = levelLayouts[layoutIndex];
@@ -1081,6 +1165,11 @@
             if (key === 'e') {
                 e.preventDefault();
                 spawnTemporalEcho();
+                return;
+            }
+            if (key === 'z') {
+                e.preventDefault();
+                spawnSnare();
                 return;
             }
             if (keysPressed.hasOwnProperty(e.key)) keysPressed[e.key] = true;
