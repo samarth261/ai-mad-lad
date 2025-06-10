@@ -28,7 +28,7 @@ jobs:
           sed -i "s/git@github.com:samarth261\/ai-mad-lad.git/$remote/g" .gitmodules
           git submodule update --init --recursive
           cd ai-mad-lad
-          git pull
+          git pull origin main
           cd ..
           git add ai-mad-lad
           git commit -m "Update ai-mad-lad" || echo "No changes to commit"
