@@ -23,9 +23,7 @@ side, so play happens on a continuous looped field.
 - **F / Freeze Burst button** – Fire a ring of freezing bullets around the
   player. Hitting the AI freezes it for a few seconds.
 - **Browser refresh** – Restart the game after a Game Over.
-- **R** – Rewind to where you were two seconds ago (8‑second cooldown).
 - **D** – Deploy a holographic decoy that lures the AI for three seconds.
-- **Q** – Instantly swap positions with the AI (10‑second cooldown).
 - **C** – Temporarily control the AI's movement for two seconds
   (12‑second cooldown).
 - **E** – Release a Temporal Echo that retraces your last two seconds of
@@ -49,12 +47,6 @@ The AI periodically shoots orange projectiles at the player. If one hits you,
 "You Were Tagged Back" is displayed and the game stops. Refresh the page to
 play again.
 
-## Rewind Mechanic
-
-Press **R** at any time to instantly return to your position from two seconds
-earlier. This ability has an eight‑second cooldown, displayed at the bottom of
-the game. Use it to escape a tight spot or surprise the AI with an unexpected
-move.
 
 ## Holographic Decoy
 
@@ -64,11 +56,6 @@ or escape danger. The decoy disappears on its own or when a new level loads.
 
 Enjoy the chase!
 
-## Quantum Swap
-
-Press **Q** to instantly trade places with the AI. This obscure ability can
-flip a dangerous situation in your favor or drop the AI into a trap. It has a
-ten‑second cooldown shown below the game.
 
 ## Puppeteer Hack
 
