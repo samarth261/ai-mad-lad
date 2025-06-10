@@ -18,7 +18,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
       - name: Clone website repository
         run: |
-          git clone https://x-access-token:${{ secrets.PUSH_TOKEN }}@github.com/samarth261/samarth261.github.io.git website
+          git clone https://x-access-token:${{ secrets.GA_PAT }}@github.com/samarth261/samarth261.github.io.git website
       - name: Update submodule
         run: |
           cd website
