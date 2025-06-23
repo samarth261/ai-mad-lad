@@ -135,27 +135,6 @@
             box-shadow: 0 0 5px #00ffff;
         }
 
-        /* Decoy style */
-        .decoy {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            position: absolute;
-            background-color: rgba(52, 152, 219, 0.4);
-            border: 2px dashed #3498db;
-            z-index: 6;
-        }
-
-        /* Temporal Echo style */
-        .echo {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            position: absolute;
-            background-color: rgba(241, 196, 15, 0.4);
-            border: 2px dashed #f1c40f;
-            z-index: 7;
-        }
 
         /* Quantum Snare style */
         .snare {
@@ -242,11 +221,8 @@
         <span id="level-display">Level: 1</span>
         <span id="boost-token-display">Boost Tokens: 0 / 5</span>
         <span id="shield-display">Shield: None</span>
-        <span id="echo-display">Echo: Ready</span>
         <span id="snare-display">Snare: Ready</span>
         <span>Controls: Arrow Keys | Spacebar = Boost</span>
-        <span>D = Decoy</span>
-        <span>E = Temporal Echo</span>
     </div>
 
     <script>
@@ -259,7 +235,6 @@
         const levelDisplay = document.getElementById('level-display');
         const boostTokenDisplay = document.getElementById('boost-token-display');
         const shieldDisplay = document.getElementById('shield-display');
-        const echoDisplay = document.getElementById('echo-display');
         const snareDisplay = document.getElementById('snare-display');
 
         // --- Game Constants ---
@@ -288,8 +263,6 @@
         const aiWanderChangeFrequency = 1500; // How often AI changes random direction (ms)
         const aiMaxSpeed = basePlayerSpeed * 1.5; // Absolute speed cap for AI
         const historyDuration = 2000; // How long to keep past positions (ms)
-        const decoyDuration = 3000; // How long a decoy lasts (ms)
-        const echoCooldownTime = 9000; // Cooldown for Temporal Echo (ms)
         const snareDuration = 5000; // How long the snare stays on the field (ms)
         const snareFreezeDuration = 3000; // Freeze time when AI triggers snare
         const snareCooldownTime = 10000; // Cooldown between snares (ms)
@@ -328,15 +301,6 @@
         let isPaused = false;
         let aiShootCooldown = 0;
         let pastPositions = [];
-        let decoyActive = false;
-        let decoyPos = { x: 0, y: 0 };
-        let decoyElement = null;
-        let decoyTimer = 0;
-        let echoCooldown = 0;
-        let echoActive = false;
-        let echoPath = [];
-        let echoElement = null;
-        let echoIndex = 0;
         let snareActive = false;
         let snarePos = { x: 0, y: 0 };
         let snareElement = null;
@@ -581,14 +545,6 @@
         function updateShieldDisplay() {
             shieldDisplay.textContent = hasShield ? 'Shield: Ready' : 'Shield: None';
         }
-        function updateEchoDisplay() {
-            if (echoCooldown <= 0) {
-                echoDisplay.textContent = 'Echo: Ready';
-            } else {
-                echoDisplay.textContent = `Echo: ${(echoCooldown/1000).toFixed(1)}s`;
-            }
-        }
-
         function updateSnareDisplay() {
             if (snareCooldown <= 0) {
                 snareDisplay.textContent = 'Snare: Ready';
@@ -680,43 +636,7 @@
             burstCooldown = burstCooldownTime;
         }
 
-        function spawnDecoy() {
-            if (decoyActive || gameOver || isPaused) return;
-            const dEl = document.createElement('div');
-            dEl.className = 'decoy';
-            dEl.style.left = playerPos.x + 'px';
-            dEl.style.top = playerPos.y + 'px';
-            gameArea.appendChild(dEl);
-            decoyElement = dEl;
-            decoyPos = { x: playerPos.x, y: playerPos.y };
-            decoyTimer = decoyDuration;
-            decoyActive = true;
-        }
 
-        function updateDecoy() {
-            if (!decoyActive) return;
-            decoyTimer -= gameLoopIntervalMs;
-            if (decoyTimer <= 0) {
-                if (decoyElement && decoyElement.parentNode === gameArea) {
-                    gameArea.removeChild(decoyElement);
-                }
-                decoyActive = false;
-                decoyElement = null;
-            }
-        }
-
-        function spawnTemporalEcho() {
-            if (echoCooldown > 0 || echoActive || pastPositions.length === 0 || gameOver || isPaused) return;
-            echoPath = pastPositions.map(p => ({ x: p.x, y: p.y }));
-            if (echoPath.length === 0) return;
-            echoElement = document.createElement('div');
-            echoElement.className = 'echo';
-            gameArea.appendChild(echoElement);
-            echoIndex = 0;
-            echoActive = true;
-            echoCooldown = echoCooldownTime;
-            updateEchoDisplay();
-        }
 
         function spawnSnare() {
             if (snareCooldown > 0 || snareActive || gameOver || isPaused) return;
@@ -758,40 +678,11 @@
             }
         }
 
-        function updateEcho() {
-            if (!echoActive) return;
-            if (echoIndex >= echoPath.length) {
-                if (echoElement && echoElement.parentNode === gameArea) {
-                    gameArea.removeChild(echoElement);
-                }
-                echoActive = false;
-                echoElement = null;
-                return;
-            }
-            const pos = echoPath[echoIndex];
-            echoElement.style.left = pos.x + 'px';
-            echoElement.style.top = pos.y + 'px';
-            const aiRect = getBoundingBox(ai, aiPos, characterSize);
-            const echoRect = getBoundingBox(null, pos, characterSize);
-            if (isColliding(aiRect, echoRect)) {
-                aiFrozen = true;
-                aiFreezeTimer = aiFreezeDuration;
-                ai.classList.add('frozen');
-                if (echoElement && echoElement.parentNode === gameArea) {
-                    gameArea.removeChild(echoElement);
-                }
-                echoActive = false;
-                echoElement = null;
-                return;
-            }
-            echoIndex++;
-        }
         function autoTriggerAbilitiesFunc() {
             if (!autoUseAbilities) return;
             if (boostTokensCollected >= boostRequirement && !isBoosting) activateBoost();
             if (burstCooldown <= 0) fireBurst();
-            if (!decoyActive) spawnDecoy();
-            if (echoCooldown <= 0 && !echoActive) spawnTemporalEcho();
+            
             if (snareCooldown <= 0 && !snareActive) spawnSnare();
         }
 
@@ -841,8 +732,8 @@
             let moveVector = { x: 0, y: 0 }; // The calculated direction vector before obstacle checks
 
             // --- Calculate Distance and Determine Mode ---
-            const targetPos = decoyActive ? decoyPos : playerPos;
-            const targetVel = decoyActive ? { x: 0, y: 0 } : playerVelocity;
+            const targetPos = playerPos;
+            const targetVel = playerVelocity;
             const distanceToTarget = getDistance(targetPos, aiPos);
             const mode = distanceToTarget < aiEvasionDistance ? 'evade' : 'wander';
 
@@ -976,22 +867,16 @@
             player.style.left = playerPos.x + 'px'; player.style.top = playerPos.y + 'px'; ai.style.left = aiPos.x + 'px'; ai.style.top = aiPos.y + 'px';
         }
         function gameLoop() { /* ... same as before ... */
-            updateDecoy();
             if (gameOver || isPaused) return;
-            // Record recent player positions for echo ability
+            // Record recent player positions
             pastPositions.push({ x: playerPos.x, y: playerPos.y, t: Date.now() });
             while (pastPositions.length && Date.now() - pastPositions[0].t > historyDuration) {
                 pastPositions.shift();
-            }
-            if (echoCooldown > 0) {
-                echoCooldown -= gameLoopIntervalMs;
-                if (echoCooldown < 0) echoCooldown = 0;
             }
             if (snareCooldown > 0) {
                 snareCooldown -= gameLoopIntervalMs;
                 if (snareCooldown < 0) snareCooldown = 0;
             }
-            updateEchoDisplay();
             if (aiTeleportCooldown > 0) {
                 aiTeleportCooldown -= gameLoopIntervalMs;
             } else {
@@ -1019,7 +904,6 @@
             handlePlayerInput();
             moveAI();
             autoTriggerAbilitiesFunc();
-            updateEcho();
             updateSnare();
             moveProjectiles();
             updateAIClones();
@@ -1050,16 +934,11 @@
             player.classList.remove('shielded');
             aiFrozen = false;
             ai.classList.remove('frozen');
-            if (decoyActive && decoyElement && decoyElement.parentNode === gameArea) {
-                gameArea.removeChild(decoyElement);
+            if (snareActive && snareElement && snareElement.parentNode === gameArea) {
+                gameArea.removeChild(snareElement);
             }
-            decoyActive = false;
-            decoyElement = null;
-            if (echoActive && echoElement && echoElement.parentNode === gameArea) {
-                gameArea.removeChild(echoElement);
-            }
-            echoActive = false;
-            echoElement = null;
+            snareActive = false;
+            snareElement = null;
             if (snareActive && snareElement && snareElement.parentNode === gameArea) {
                 gameArea.removeChild(snareElement);
             }
@@ -1095,8 +974,6 @@
                 boostTimer = null;
             }
             updateBoostTokenDisplay();
-            echoCooldown = 0;
-            updateEchoDisplay();
             snareCooldown = 0;
             updateSnareDisplay();
             aiShootCooldown = aiShootCooldownTime / 2;
@@ -1153,16 +1030,6 @@
             if (key === 'f') {
                 e.preventDefault();
                 fireBurst();
-                return;
-            }
-            if (key === 'd') {
-                e.preventDefault();
-                spawnDecoy();
-                return;
-            }
-            if (key === 'e') {
-                e.preventDefault();
-                spawnTemporalEcho();
                 return;
             }
             if (key === 'z') {

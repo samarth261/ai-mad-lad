@@ -23,10 +23,6 @@ side, so play happens on a continuous looped field.
 - **F / Freeze Burst button** – Fire a ring of freezing bullets around the
   player. Hitting the AI freezes it for a few seconds.
 - **Browser refresh** – Restart the game after a Game Over.
-- **D** – Deploy a holographic decoy that lures the AI for three seconds.
-- **E** – Release a Temporal Echo that retraces your last two seconds of
-  movement. If the echo touches the AI, it freezes for a moment
-  (9‑second cooldown).
 
 ## Collectables and Boosts
 
@@ -46,21 +42,6 @@ The AI periodically shoots orange projectiles at the player. If one hits you,
 play again.
 
 
-## Holographic Decoy
-
-Press **D** to drop a faint blue decoy at your current location. The AI will
-chase the decoy instead of you for about three seconds, letting you reposition
-or escape danger. The decoy disappears on its own or when a new level loads.
-
-Enjoy the chase!
-
-
-## Temporal Echo
-
-Press **E** to summon a shimmering afterimage that faithfully retraces the path
-you took over the previous two seconds. The echo is ethereal, passing through
-obstacles, but if it brushes the AI, the opponent becomes frozen for a short
-time. Timing its release lets you snare the AI with your own past movements.
 
 ## Quantum Snare
 
@@ -74,6 +55,6 @@ has a ten‑second cooldown shown below the game.
 - **Teleportation:** The opponent now warps close to your position every few seconds.
 - **Dash Burst:** The AI occasionally surges forward with extra speed, making escapes trickier.
 - **Phantom Clone:** A translucent copy of the AI periodically spawns and chases you. Touching it ends the game just like the real AI.
-- **Automatic Player Abilities:** All of your special powers trigger on their own whenever they are off cooldown. You can still use the original keys, but expect boosts, decoys and other tricks to fire constantly.
+ - **Automatic Player Abilities:** All of your special powers trigger on their own whenever they are off cooldown. You can still use the original keys, but expect boosts and other tricks to fire constantly.
 
 These additions turn each round into nonstop chaos with the AI using new moves and your abilities activating repeatedly on their own.
